@@ -7,12 +7,13 @@ from scrapy.spider import BaseSpider
 from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy.selector import HtmlXPathSelector, Selector
 from beeradvocate.items import BeeradvocateItem
-from scrapy.shell import inspect_response
+from scrapy.shell import inspect_responsef
+import SQLmodels
+
 
 
 class BASpider(CrawlSpider):
 	name = "beeradvocate"
-	#allowed_domains = ["http://www.beeradvocate.com/"]
 	start_urls = ["http://www.beeradvocate.com/beer/style/", "http://www.beeradvocate.com/beer/"]   
 
 	rules = (
@@ -30,21 +31,82 @@ class BASpider(CrawlSpider):
 #http://www.beeradvocate.com/beer/profile/345/?view=beers
 #Rule (LinkExtractor(allow=("http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/", ),), 'parse_page', follow= True)
 
-	def parse_beer(self, response):
-		# This function grabs all of the beer information
-		# brewery, overall score, abv, style, etc.
-		url = response.url
-
-		self.log('--Beer Parse--')
-		hxs = scrapy.Selector(response)
-		title = hxs.xpath('//*[@id="content"]/div/div/div[1]/div/div[3]/h1/text()').extract()
-		brewery = hxs.xpath('//*[@id="content"]/div/div/div[1]/div/div[3]/h1/span/text()').extract()
-		yield url
-
-
 	def parse_page(self, response):
-		self.log('==Entrered Inner Page==')
+		self.log('==Entrered Inner Parse==')
 		url = response.url
+
+		# See what we are going to be parsing
+
+		# Is it a store / brewery / bar
+		try: 
+			placeScore = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[2]/a/b').extract()
+			breweryID = url.split('/')[5]
+			# check the DB to see if it already exists
+
+			# if not, get the rest of the info
+				locationType = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/b[1]').extract()
+				numReviews = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[2]/span[2]/text()').extract()
+				numRatings = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[2]/span[1]/text()').extract()
+				numTaps = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[1]').extract()
+				numBottles = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[2]').extract()
+				caskBeer = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[3]').extract()
+				beerToGo = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[4]').extract()
+				activeBeers = hxs.xpath('//*[@id="baContent"]/div[3]/table/tbody/tr[1]/td/h6/text()[1]').extract()
+				archivedBeers = hxs.xpath('//*[@id="baContent"]/div[3]/table/tbody/tr[1]/td/h6/a[1]').extract()
+				streetAddress = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[1]').extract()
+				city = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[1]/text()').extract()
+				state = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[2]/text()').extract()
+				zip = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[3]').extract()
+				country = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[3]').extract()
+				try:
+					phone = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[4]').extract()
+				except IndexError:
+					phone = -9
+				else:
+					phone = -9
+				try:	
+					website = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[4]').extract()
+				except IndexError:
+					website = "none"
+				else:
+					website = "none"
+
+				try:
+					twitter = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[6]/text()').extract()
+				except IndexError:
+					twitter = "none"
+				else:
+					twitter = "none"
+
+				try:
+					instagram = "NYS"
+				except IndexError:
+					instagram = "none"
+				else:
+					instagram = "none"
+
+				try:
+					notes = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[7]/text()').extract()
+				except IndexError:
+					notes = "none"
+				else: 
+					notes = "none"
+
+				breweryInstance = SQLmodels.breweryInfo(breweryID, placeScore, locationType, numReviews, numRatings, numTaps, numBottles, caskBeer, beerToGo, activeBeers, archivedBeers, streetAddress, city, state, zip, country, -999, -999, phone, website, twitter, instagram, notes)
+
+				yield breweryInstance
+
+		except IndexError:
+			
+		else:
+
+
+
+
+		# Is it a style
+
+		# Is it a set of reviews
+
 
 		if '/beer/style' in url:
 			yield BeeradvocateItem()
