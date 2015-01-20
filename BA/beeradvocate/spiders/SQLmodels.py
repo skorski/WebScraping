@@ -1,18 +1,20 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, Float, Boolean, DateTime
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy import create_engine, Column, Integer, String, Text, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import relationship, backref, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 from sqlite3 import dbapi2 as sqlite3
 
-from pygeocoder import Geocoder  # this is used to convert the address to lat long
+# from pygeocoder import Geocoder  # this is used to convert the address to lat long
 import datetime
 
-from app import db, oembed
+engine = create_engine('sqlite:////home/dan/foo.db')
+db = sessionmaker(bind=engine)
+Base = declarative_base()
 
-db = SQLAlchemy(app)
-engine = create_engine('sqlite:////absolute/path/to/foo.db')
+class beerReview(Base):
+	__tablename__ = "beerReview"
 
-class beerReview(db.Model):
-	beerID = Column(db.Integer, primary_key=True)
-	breweryID = Column(db.Integer, db.ForeignKey(''))
+	beerID = Column(Integer, primary_key=True)
+	breweryID = Column(Integer, ForeignKey('breweryInfo'))
 	rating = Column(Float)
 	userName = Column(Text)
 	fullReview = Column(Text)
@@ -20,7 +22,7 @@ class beerReview(db.Model):
 	notes = Column(Text)
 	retriveDate = Column(DateTime)
 
-	def __init__(self, beerID, breweryID, rating, userName, fullReview, date)
+	def __init__(self, beerID, breweryID, rating, userName, fullReview, date):
 		self.beerID = beerID
 		self.breweryID = breweryID
 		self.rating = rating
@@ -29,7 +31,9 @@ class beerReview(db.Model):
 		self.retriveDate = datetime.datetime.now()
 
 
-class breweryInfo(db.Model)
+class breweryInfo(Base):
+	__tablename__ = "breweryInfo"
+
 	breweryID = Column(Integer, primary_key = True)
 	place_Score = Column(Integer)
 	locationType = Column(Text) # bar, store, brewery...
@@ -55,7 +59,7 @@ class breweryInfo(db.Model)
 	notes = Column(Text)
 	retriveDate = Column(DateTime) 
 
-	def __init__(self, breweryID, place_Score, locationType, numReviews, numRatings, numTaps, numBottles, caskBeer, beerToGo, activeBeers, archivedBeers, streetAddress, city, state, zip, country, lat, long, phone, website, twitter, instagram, notes)
+	def __init__(self, breweryID, place_Score, locationType, numReviews, numRatings, numTaps, numBottles, caskBeer, beerToGo, activeBeers, archivedBeers, streetAddress, city, state, zip, country, lat, long, phone, website, twitter, instagram, notes):
 		self.breweryID = breweryID
 		self.place_Score = place_Score
 		self.locationType = locationType
@@ -83,9 +87,11 @@ class breweryInfo(db.Model)
 
 
 
-class beerInfo(db.Model)
+class beerInfo(Base):
+	__tablename__ = "beerInfo"
+	
 	beerID = Column(Integer, primary_key = True)
-	breweryID = Column(Integer, db.ForeignKey(''))
+	breweryID = Column(Integer, ForeignKey('breweryInfo'))
 	BAScore = Column(Integer)
 	BROScore = Column(Integer)
 	numRatings = Column(Integer)
@@ -100,7 +106,7 @@ class beerInfo(db.Model)
 	notes = Column(Text)
 	retriveDate = Column(DateTime)
 
-	def __init__(self, beerID, breweryID, BAScore, BROScore, numRatings, numReviews, rAvg, wants, gots, FT, style, ABV, availability, notes)
+	def __init__(self, beerID, breweryID, BAScore, BROScore, numRatings, numReviews, rAvg, wants, gots, FT, style, ABV, availability, notes):
 		self.beerID = beerID
 		self.breweryID = breweryID
 		self.BAScore = BAScore
