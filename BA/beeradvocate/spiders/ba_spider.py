@@ -6,13 +6,14 @@ from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.spider import BaseSpider
 from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy.selector import HtmlXPathSelector, Selector
-from beeradvocate.items import BeeradvocateItem, breweryInfo
+from beeradvocate.items import BeeradvocateItem, breweryInfo, beerReview, beerInfo
 from scrapy.shell import inspect_response
 import SQLmodels
 from scrapy.exceptions import DropItem
-from parse_functions import parseBrewery, parseReview, isInt
+from parseFunctions import parseBrewery, parseReview, isInt
 
 # scrapy crawl beeradvocate
+# scrapy crawl beeradvocate -s JOBDIR=crawls/somespider-1
 
 
 class storeInDBPipeline(object):
@@ -30,7 +31,10 @@ class storeInDBPipeline(object):
 class BASpider(CrawlSpider):
 	name = "beeradvocate"
 	# start_urls = ["http://www.beeradvocate.com/beer/style/", "http://www.beeradvocate.com/beer/"]   
-	start_urls = ["http://www.beeradvocate.com/place/"]  
+	start_urls = [
+							"http://www.beeradvocate.com/beer/profile/73/5096/",
+							#"http://www.beeradvocate.com/place/"
+							]  
 
 
 	# rules = (
@@ -38,36 +42,41 @@ class BASpider(CrawlSpider):
 
 	rules = (
 	Rule (LinkExtractor(
-		allow=("http://www.beeradvocate.com/beer/zzzzzstyle/", 
-			"http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{0,1}/", 
-			"http://www.beeradvocate.com/beer/profile/\d{2,6}/\?view=ratings",
+		allow=(
+			"http://www.beeradvocate.com/beer/profile/\d{2,6}/",
+		#	"http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{2,6}/",
+		#	"\S*\?view=beer&sort=&start=\d{1,6}",
 			), 
 		deny=(
-			"http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/\?ba=", 
-			"http://www.beeradvocate.com/beer/profile/\d{2,6}/\?ba", 
-			"http://www.beeradvocate.com/beer/profile/\d{2,6}/\?sort", 
-			"http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?sort=low",
-			"http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?sort=[a-z]{1,9}", 
-			"http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?ba=",
+			"\S*\?ba=\S*",
+			"\S*\?sort=\S*",
+			"\S*\?view=events\S*",
+			"\S*\?view=ratings\S*",
+			# "\S*\?view=",
 			),), 'parse_page', follow = True),)
 
-#  ,
-#		Rule (LinkExtractor(allow=("http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/?view=beers&sort=&start=.*", ),
-#											deny=("http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/?ba=", )), 'parse_page', follow= True)
 
-# Rule (LinkExtractor(allow=("http://www.beeradvocate.com/beer/profile/345/104028/\?view=beer&sort=&start=.*", ),
-# 											deny=("http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/?ba=", ))
-# 	, 'parse_page', follow= True),
+# Allow
+			# "http://www.beeradvocate.com/beer/zzzzzstyle/", 
+			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{0,1}/", 
 
-# Rule (LinkExtractor(allow=("http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/", ),), 'parse_beer', follow= True) ,
-#http://www.beeradvocate.com/beer/profile/345/?view=beers
-#Rule (LinkExtractor(allow=("http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/", ),), 'parse_page', follow= True)
+
+# Deny
+
+			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\?ba=", 
+			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\?sort=", 
+			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?ba=", 
+			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?sort=",
+			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?sort=", 
+			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?ba=",
+
 
 	def parse_page(self, response):
-		self.log('==Entrered Inner Parse==')
+		print '==Entrered Inner Parse=='
+		# inspect_response(response, self)
 		url = response.url
 		if url: 
-			hxs = scrapy.Selector(response)
+			hxs = Selector(response)
 			# See what we are going to be parsing
 			# Is it a store / brewery / bar
 			try: 
@@ -76,17 +85,22 @@ class BASpider(CrawlSpider):
 				if (not isInt(url.split('/')[6]) and url.split('/')[4] == 'profile'):
 					# if there is no final value and it is a profile... it's a place page
 					print ('==Place==')
-					item = parseBrewery(hxs)
+					item = parseBrewery(hxs, url)
+					print "Called Parse"
+					print item
+					print "-----------"
 					yield item
-				elif (not isInt(url.split('/')[6]) and url.split('/')[4] == 'style'): 
-					# this is a style of beer, only get the links.
-					print ('==Style Page==')
-					yield BeeradvocateItem()
-				elif (isInt(url.split('/')[6]) and url.split('/')[4] == 'profile'):
-					# this is a beer review page
-					print ('==Review Page==')
-					item = parseReview(hxs)
-					yield item
+
+				# elif (not isInt(url.split('/')[6]) and url.split('/')[4] == 'style'): 
+				# 	# this is a style of beer, only get the links.
+				# 	print ('==Style Page==')
+				# 	item = BeeradvocateItem()
+				# 	yield item
+				# elif (isInt(url.split('/')[6]) and url.split('/')[4] == 'profile'):
+				# 	# this is a beer review page
+				# 	print ('==Review Page==')
+				# 	item = parseReview(hxs)
+				# 	yield item
 	
 			except IndexError:
 				print ('==index error==')

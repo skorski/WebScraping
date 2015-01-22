@@ -3,6 +3,8 @@ from scrapy.http import Request
 from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy.selector import HtmlXPathSelector, Selector
 from beeradvocate.items import BeeradvocateItem, breweryInfo
+from pygeocoder import Geocoder
+import datetime
 
 def isInt(s):
 	try: 
@@ -11,69 +13,80 @@ def isInt(s):
 	except ValueError:
 		return False
 
-def parseBrewery(hxs):
-	# placeScore = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[2]/a/b').extract()
-	# breweryID = url.split('/')[5]
+def parseBrewery(hxs, url):
+	item = breweryInfo()
+	item['breweryName'] = hxs.xpath('//*[@id="content"]/div/div/div[1]/div/div[3]/h1/text()').extract()[0]
+	item['placeScore'] = hxs.xpath('//span[@class="BAscore_big ba-score"]/text()').extract()[0]
+	item['breweryID'] = url.split('/')[5]
 	# # check the DB to see if it already exists
 
 	# # if not, get the rest of the info
-	# locationType = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/b[1]').extract()
-	# numReviews = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[2]/span[2]/text()').extract()
-	# numRatings = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[2]/span[1]/text()').extract()
-	# numTaps = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[1]').extract()
-	# numBottles = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[2]').extract()
-	# caskBeer = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[3]').extract()
-	# beerToGo = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[1]/td/table/tbody/tr/td[3]/text()[4]').extract()
-	# activeBeers = hxs.xpath('//*[@id="baContent"]/div[3]/table/tbody/tr[1]/td/h6/text()[1]').extract()
-	# archivedBeers = hxs.xpath('//*[@id="baContent"]/div[3]/table/tbody/tr[1]/td/h6/a[1]').extract()
-	# streetAddress = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[1]').extract()
-	# city = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[1]/text()').extract()
-	# state = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[2]/text()').extract()
-	# zip = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[3]').extract()
-	# country = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[3]').extract()
-	# try:
-	# 	phone = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[4]').extract()
-	# except IndexError:
-	# 	phone = -9
-	# else:
-	# 	phone = -9
-	# try:	
-	# 	website = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[4]').extract()
-	# except IndexError:
-	# 	website = "none"
-	# else:
-	# 	website = "none"
+	try:
+		locationMess = hxs.select('//td/b/text()').extract()
+		for e in locationMess:
+			if 'brewery' in e.lower():
+				item['brewery'] = "True"
+			elif 'bar' in e.lower():
+				item['bar'] = "True"
+			elif 'store' in e.lower():
+				item['store'] = "True"
+	except:
+		pass
 
-	# try:
-	# 	twitter = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/a[6]/text()').extract()
-	# except IndexError:
-	# 	twitter = "none"
-	# else:
-	# 	twitter = "none"
+	item['numReviews'] = hxs.select('//span[@class="ba-reviews"]/text()').extract()[0]
+	item['numRatings'] = hxs.select('//span[@class="ba-ratings"]/text()').extract()[1].split(' ')[0]
 
-	# try:
-	# 	instagram = "NYS"
-	# except IndexError:
-	# 	instagram = "none"
-	# else:
-	# 	instagram = "none"
+	try:
+		rightTable = hxs.select('//td[@align="left"][@width="33%"]/text()').extract()
 
-	# try:
-	# 	notes = hxs.xpath('//*[@id="baContent"]/table/tbody/tr/td[2]/table/tbody/tr[2]/td/text()[7]/text()').extract()
-	# except IndexError:
-	# 	notes = "none"
-	# else: 
-	# 	notes = "none"
+		for e in rightTable:
+			if 'Taps:' in e:
+				item['numTaps'] = e.split(' ')[1]
+			elif 'Bottles:' in e:
+				item['numBottles'] = e.split(' ')[1]
+			elif 'Cask:' in e:
+				item['caskBeer'] = e.split(' ')[1]
+			elif 'Beer-to-Go' in e:
+				item['beerToGo'] = e.split(' ')[1]			
+	except:
+		pass
 
-# breweryID, placeScore, locationType, numReviews, numRatings, numTaps, numBottles, caskBeer, beerToGo, activeBeers, archivedBeers, streetAddress, city, state, zip, country, -999, -999, phone, website, twitter, instagram, notes
+	try:
+		beerCount = hxs.select('//h6').extract()
+		p1 = re.compile('Current \(\d*\)')
+		item['currentBeers'] = str(p1.findall(beerCount[0])[0]).split('(')[1][:-1]
+		p1 = re.compile('Archived \(\d*\)')
+		item['archivedBeers'] = str(p1.findall(beerCount[0])[0]).split('(')[1][:-1]
+	except:
+		pass
 
-	item = breweryInfo()
+	try:
+		locationBlock = hxs.xpath('//td[@align="left"][@valign="top"]/a/text()').extract()
+		item['city'] = locationBlock[0]
+		item['state'] = locationBlock[1]
+		item['country'] = locationBlock[2]
+		item['twitter'] = locationBlock[5]
+		item['streetAddress'] = hxs.xpath('//td[@align="left"][@valign="top"][@style="padding:10px;"]/text()').extract()[1]
+		item['gcAddress'] = item['breweryName'] + " " + item['streetAddress'] + " " + item['city'] + ", " + item['state']
+	except:
+		pass
 
-	#item = SQLmodels.breweryInfo()
-	#item['breweryID'] = breweryID
-	#item['placeScore'] = placeScore
+	try:
+		item['phone'] = hxs.xpath('//td[@align="left"][@valign="top"][@style="padding:10px;"]/text()').extract()[4].split(':')[1]
+	except:
+		pass
 
-	yield item
+	try:
+		googleResult = Geocoder.geocode(item['gcAddress'])
+		item['latc'] = googleResult[0].coordinates[0]
+		item['longc'] = googleResult[0].coordinates[1]
+	except:
+		pass
+
+	item['retriveDate'] = datetime.datetime.now()
+
+	return item
+
 
 def parseReview(hxs):
 	breweryID = url.split('/')[5]
