@@ -12,10 +12,12 @@ BOT_NAME = 'beeradvocate'
 
 SPIDER_MODULES = ['beeradvocate.spiders']
 NEWSPIDER_MODULE = 'beeradvocate.spiders'
-CONCURRENT_REQUESTS_PER_DOMAIN = 12
+CONCURRENT_REQUESTS_PER_DOMAIN = 1
 DOWNLOAD_DELAY = 0
 
 LOG_LEVEL = 'INFO'
+
+COOKIES_ENABLED = False
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'beeradvocate (+http://www.yourdomain.com)'

@@ -2,19 +2,51 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, Float, Bool
 from sqlalchemy.orm import relationship, backref, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlite3 import dbapi2 as sqlite3
-
-# from pygeocoder import Geocoder  # this is used to convert the address to lat long
+# from ba_spider import Base
 import datetime
 
-engine = create_engine('sqlite:////home/dan/foo.db')
-db = sessionmaker(bind=engine)
+
 Base = declarative_base()
 
-class beerReview(Base):
+def createTables(engine):
+	#try:
+	Base.metadata.create_all(engine)
+	return True
+	#except:
+	#	return False
+
+def createDB(engine):
+	try:
+		md = MetaData()
+		connection = engine.connect()
+		return True
+	except:
+		return False
+
+
+def duplicateBrewery(compBrewID, db):
+	# query the db for breweries with the num ID.
+	q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == compBrewID)
+	if q.count() > 0:
+		return True
+	else:
+		return False
+
+
+def addBrewery(item):
+	newBrewery = breweryInfo()
+
+
+# ###########################
+#        Declarations
+# ###########################
+
+
+class DBbeerReview(Base):
 	__tablename__ = "beerReview"
 
 	beerID = Column(Integer, primary_key=True)
-	breweryID = Column(Integer, ForeignKey('breweryInfo'))
+	fkbreweryID = Column(Integer)
 	rating = Column(Float)
 	userName = Column(Text)
 	fullReview = Column(Text)
@@ -31,67 +63,69 @@ class beerReview(Base):
 		self.retriveDate = datetime.datetime.now()
 
 
-class breweryInfo(Base):
+class DBbreweryInfo(Base):
 	__tablename__ = "breweryInfo"
 
-	breweryID = Column(Integer, primary_key = True)
-	place_Score = Column(Integer)
-	locationType = Column(Text) # bar, store, brewery...
-	numReviews = Column(Integer)
-	numRatings = Column(Integer)
-	numTaps = Column(Integer)
-	numBottles = Column(Integer)
-	caskBeer = Column(Text)
-	beerToGo = Column(Text)
-	activeBeers = Column(Integer)
-	archivedBeers = Column(Integer)
-	streetAddress = Column(Text)
-	city = Column(Text)
-	state = Column(Text)
-	zip = Column(Integer)
-	country = Column(Text)
-	lat = Column(Float)
-	long = Column(Float)
-	phone = Column(Text)
-	website = Column(Text)
-	twitter = Column(Text)
-	instagram = Column(Text)
-	notes = Column(Text)
-	retriveDate = Column(DateTime) 
+	breweryID = Column(Integer, primary_key=True) # scraped
+	breweryName = Column(Text) # scraped
+	placeScore = Column(Float) # scraped
+	brewery = Column(Text) # scraped bool for location type
+	bar = Column(Text) # scraped bool for location type
+	store = Column(Text) # scraped bool for location type
+	numReviews = Column(Integer) # scraped
+	numRatings = Column(Integer) # scraped
+	numTaps = Column(Integer) # scraped
+	numBottles = Column(Integer) # scraped
+	caskBeer = Column(Text) # scraped
+	beerToGo = Column(Text) # scraped
+	activeBeers = Column(Integer) # scraped
+	archivedBeers = Column(Integer) # scraped
+	streetAddress = Column(Text) # scraped
+	city = Column(Text) # scraped
+	state = Column(Text) # scraped
+	zipCode = Column(Integer)
+	country = Column(Text) # scraped
+	latc = Column(Float) # scraped
+	longc = Column(Float) # scraped
+	phone = Column(Text) # scraped
+	twitter = Column(Text) # scraped
+	retriveDate = Column(DateTime) # scraped
 
-	def __init__(self, breweryID, place_Score, locationType, numReviews, numRatings, numTaps, numBottles, caskBeer, beerToGo, activeBeers, archivedBeers, streetAddress, city, state, zip, country, lat, long, phone, website, twitter, instagram, notes):
-		self.breweryID = breweryID
-		self.place_Score = place_Score
-		self.locationType = locationType
-		self.numReviews = numReviews
-		self.numRatings = numRatings
-		self.numTaps = numTaps 
-		self.numBottles = numBottles
-		self.caskBeer = caskBeer
-		self.beerToGo = beerToGo
-		self.activeBeers = activeBeers
-		self.archivedBeers = archivedBeers
-		self.streetAddress = streetAddress
-		self.city = city
-		self.state = state
-		self.zip = zip
-		self.country = country
-		self.lat = lat
-		self.long = long
-		self.phone = phone
-		self.website = website
-		self.twitter = twitter
-		self.instagram = instagram
-		self.notes = notes
+	def __init__(self, item):
+		self.breweryID = item['breweryID']
+		self.breweryName = item['breweryName']
+		self.placeScore = item['placeScore']
+		self.brewery = item.get('brewery', 'False')
+		self.bar = item.get('bar', 'False')
+		self.store = item.get('store', 'False')
+		self.numReviews = item.get('numReviews', -1)
+		self.numRatings = item.get('numRatings', -1)
+		self.numTaps = item.get('numTaps', 0)
+		self.numBottles = item.get('numBottles', 0)
+		self.caskBeer = item.get('caskBeer', 'N')
+		self.beerToGo = item.get('beerToGo', 'N')
+		self.activeBeers = item.get('activeBeers', 0)
+		self.archivedBeers = item.get('archivedBeers', 0)
+		self.streetAddress = item.get('streetAddress', 0)
+		self.city = item.get('city', 'NA')
+		self.state = item.get('state', 'NA')
+		self.zipCode = item.get('zipCode', 00000)
+		self.country = item.get('country', 'NA')
+		self.latc = item.get('latc', -999)
+		self.longc = item.get('longc', -999)
+		self.phone = item.get('phone', "-9")
+		self.twitter = item.get('twitter', "-9")
 		self.retriveDate = datetime.datetime.now()
 
+	def __repr__(self):
+		return '<DBbreweryInfo (breweryID=%r, breweryName=%r, placeScore=%r, brewery=%r, bar=%r, store=%r, numReviews=%r, numRatings=%r, numTaps=%r, numBottles=%r, caskBeer=%r, beerToGo=%r, activeBeers=%r, archivedBeers=%r, streetAddress=%r, city=%r, state=%r, zipCode=%r, country=%r, latc=%r, longc=%r, phone=%r, twitter=%r, retriveDate=%r)>' % (self.breweryID, self.breweryName , self.placeScore, self.brewery, self.bar, self.store, self.numReviews, self.numRatings, self.numTaps, self.numBottles,	self.caskBeer, self.beerToGo,	self.activeBeers,	self.archivedBeers, self.streetAddress, self.city, self.state, self.zipCode, self.country, 		self.latc, self.longc, self.phone, self.twitter, self.retriveDate)
 
 
-class beerInfo(Base):
+class DBbeerInfo(Base):
 	__tablename__ = "beerInfo"
 	
 	beerID = Column(Integer, primary_key = True)
-	breweryID = Column(Integer, ForeignKey('breweryInfo'))
+	fkbreweryID = Column(Integer)
 	BAScore = Column(Integer)
 	BROScore = Column(Integer)
 	numRatings = Column(Integer)

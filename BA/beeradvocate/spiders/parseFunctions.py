@@ -1,4 +1,4 @@
-#import SQLmodels
+# import SQLmodels
 from scrapy.http import Request
 from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy.selector import HtmlXPathSelector, Selector
@@ -6,12 +6,14 @@ from beeradvocate.items import BeeradvocateItem, breweryInfo
 from pygeocoder import Geocoder
 import datetime
 
+
 def isInt(s):
-	try: 
+	try:
 		int(s)
 		return True
 	except ValueError:
 		return False
+
 
 def parseBrewery(hxs, url):
 	item = breweryInfo()
@@ -47,7 +49,7 @@ def parseBrewery(hxs, url):
 			elif 'Cask:' in e:
 				item['caskBeer'] = e.split(' ')[1]
 			elif 'Beer-to-Go' in e:
-				item['beerToGo'] = e.split(' ')[1]			
+				item['beerToGo'] = e.split(' ')[1]
 	except:
 		pass
 

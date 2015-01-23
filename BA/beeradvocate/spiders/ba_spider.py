@@ -8,13 +8,27 @@ from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy.selector import HtmlXPathSelector, Selector
 from beeradvocate.items import BeeradvocateItem, breweryInfo, beerReview, beerInfo
 from scrapy.shell import inspect_response
-import SQLmodels
 from scrapy.exceptions import DropItem
 from parseFunctions import parseBrewery, parseReview, isInt
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import sessionmaker
+
+from sqlalchemy.ext.declarative import declarative_base # this is used to create the base class that can be used to create the database
+Base = declarative_base()
+
+# with base defined we can import the models
+from SQLmodels import DBbreweryInfo, DBbeerReview, DBbeerInfo, createTables, duplicateBrewery
 
 # scrapy crawl beeradvocate
 # scrapy crawl beeradvocate -s JOBDIR=crawls/somespider-1
 
+engine = create_engine('sqlite:////home/dan/foo.sqlite')
+
+# create a configured session class
+Session = sessionmaker(bind=engine)
+
+# now create the session
+db = Session()
 
 class storeInDBPipeline(object):
 	var_item = 1
@@ -30,6 +44,11 @@ class storeInDBPipeline(object):
 
 class BASpider(CrawlSpider):
 	name = "beeradvocate"
+
+	createTables(engine)
+
+		# at this point we should be able to do things like db.add(myObject) and db.commit()
+
 	# start_urls = ["http://www.beeradvocate.com/beer/style/", "http://www.beeradvocate.com/beer/"]   
 	start_urls = [
 							"http://www.beeradvocate.com/beer/profile/73/5096/",
@@ -73,6 +92,7 @@ class BASpider(CrawlSpider):
 
 	def parse_page(self, response):
 		print '==Entrered Inner Parse=='
+
 		# inspect_response(response, self)
 		url = response.url
 		if url: 
@@ -81,15 +101,30 @@ class BASpider(CrawlSpider):
 			# Is it a store / brewery / bar
 			try: 
 				print url
-				print "6:" + url.split('/')[6] + " 4:" + url.split('/')[4]
+				breweryID = url.split('/')[4]
+				print "6:" + url.split('/')[6] + " 4:" + breweryID
 				if (not isInt(url.split('/')[6]) and url.split('/')[4] == 'profile'):
-					# if there is no final value and it is a profile... it's a place page
-					print ('==Place==')
-					item = parseBrewery(hxs, url)
-					print "Called Parse"
-					print item
-					print "-----------"
-					yield item
+					# if there is no final value and it is a profile... it's a place page	
+					print '==Place=='
+					# test to see if this has already been parsed
+					if duplicateBrewery(breweryID, db):
+						print 'duplicated brewery'
+						# create a blank item and return it, there is no need to parse
+						item = breweryInfo()
+						yield item
+					else:
+						item = parseBrewery(hxs, url)
+						try:
+							newBrewery = DBbreweryInfo(item)
+							db.add(newBrewery)
+							db.commit()
+							print "DB commit successful"
+						except:
+							db.rollback()
+							print "DB commit failed"
+						print item
+						print "-----------"
+						yield item
 
 				# elif (not isInt(url.split('/')[6]) and url.split('/')[4] == 'style'): 
 				# 	# this is a style of beer, only get the links.

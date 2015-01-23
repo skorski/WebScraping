@@ -58,9 +58,9 @@ class breweryInfo(scrapy.Item):
 	breweryID = scrapy.Field() # scraped
 	breweryName = scrapy.Field() # scraped
 	placeScore = scrapy.Field() # scraped
-	brewery = scrapy.Field() # scraped
-	bar = scrapy.Field() # scraped
-	store = scrapy.Field() # scraped
+	brewery = scrapy.Field() # scraped bool for location type
+	bar = scrapy.Field() # scraped bool for location type
+	store = scrapy.Field() # scraped bool for location type
 	numReviews = scrapy.Field() # scraped
 	numRatings = scrapy.Field() # scraped
 	numTaps = scrapy.Field() # scraped
@@ -73,9 +73,35 @@ class breweryInfo(scrapy.Item):
 	city = scrapy.Field() # scraped
 	state = scrapy.Field() # scraped
 	country = scrapy.Field() # scraped
+	zipCode = scrapy.Field() 
 	latc = scrapy.Field() # scraped
 	longc = scrapy.Field() # scraped
 	phone = scrapy.Field() # scraped
 	twitter = scrapy.Field()  # scraped
 	retriveDate = scrapy.Field()
 	gcAddress = scrapy.Field()
+
+	
+	# def __init__(self):
+	# 	placeScore = -9
+	# 	self.brewery = 'False'
+	# 	self.bar = 'False'
+	# 	self.store = 'False'
+	# 	self.numReviews = -1
+	# 	self.numRatings = -1
+	# 	numTaps = -1
+	# 	numBottles = -1
+	# 	caskBeer = "N"
+	# 	beerToGo = "N"
+	# 	currentBeers = -1
+	# 	archivedBeers = -1
+	# 	streetAddress = "NA"
+	# 	city = "NA"
+	# 	state = "NA"
+	# 	country ="NA"
+	# 	zipCode = 00000
+	# 	latc = -999
+	# 	longc = -999
+	# 	phone = "NA"
+	# 	twitter = "NA"
+	# 	gcAddress = "NA"
