@@ -37,21 +37,24 @@ class beerReview(scrapy.Item):
 
 
 class beerInfo(scrapy.Item):	
-	beerID = scrapy.Field()
-	breweryID = scrapy.Field()
-	BAScore = scrapy.Field()
-	BROScore = scrapy.Field()
-	numRatings = scrapy.Field()
-	numReviews = scrapy.Field()
-	rAvg = scrapy.Field()
-	wants = scrapy.Field()
-	gots = scrapy.Field()
-	FT = scrapy.Field()
-	style = scrapy.Field()
-	ABV = scrapy.Field()
-	availability = scrapy.Field()
-	notes = scrapy.Field()
-	retriveDate = scrapy.Field()
+	beerName = scrapy.Field() # scraped
+	breweryName = scrapy.Field() # scraped
+	breweryID = scrapy.Field() # scraped
+	beerID = scrapy.Field() # scraped
+	BAScore = scrapy.Field() # scraped
+	BROScore = scrapy.Field() # scraped
+	numRatings = scrapy.Field() # scraped
+	numReviews = scrapy.Field() # scraped
+	rAvg = scrapy.Field() # scraped
+	pDev = scrapy.Field() # scraped
+	wants = scrapy.Field() # scraped
+	gots = scrapy.Field() # scraped
+	FT = scrapy.Field() # scraped
+	style = scrapy.Field() # scraped
+	ABV = scrapy.Field() # scraped
+	availability = scrapy.Field() # scraped
+	notes = scrapy.Field() # scraped
+	retriveDate = scrapy.Field() # scraped
 
 
 class breweryInfo(scrapy.Item):

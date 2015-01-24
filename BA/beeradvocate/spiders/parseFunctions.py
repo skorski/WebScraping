@@ -2,8 +2,10 @@
 from scrapy.http import Request
 from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy.selector import HtmlXPathSelector, Selector
-from beeradvocate.items import BeeradvocateItem, breweryInfo
+from beeradvocate.items import BeeradvocateItem, breweryInfo, beerInfo, beerReview
+from SQLmodels import DBbeerInfo
 from pygeocoder import Geocoder
+import re
 import datetime
 
 
@@ -24,7 +26,7 @@ def parseBrewery(hxs, url):
 
 	# # if not, get the rest of the info
 	try:
-		locationMess = hxs.select('//td/b/text()').extract()
+		locationMess = hxs.xpath('//td/b/text()').extract()
 		for e in locationMess:
 			if 'brewery' in e.lower():
 				item['brewery'] = "True"
@@ -35,11 +37,11 @@ def parseBrewery(hxs, url):
 	except:
 		pass
 
-	item['numReviews'] = hxs.select('//span[@class="ba-reviews"]/text()').extract()[0]
-	item['numRatings'] = hxs.select('//span[@class="ba-ratings"]/text()').extract()[1].split(' ')[0]
+	item['numReviews'] = int(hxs.xpath('//span[@class="ba-reviews"]/text()').extract()[0].replace(',',''))
+	item['numRatings'] = int(hxs.xpath('//span[@class="ba-ratings"]/text()').extract()[1].split(' ')[0].replace(',',''))
 
 	try:
-		rightTable = hxs.select('//td[@align="left"][@width="33%"]/text()').extract()
+		rightTable = hxs.xpath('//td[@align="left"][@width="33%"]/text()').extract()
 
 		for e in rightTable:
 			if 'Taps:' in e:
@@ -54,7 +56,7 @@ def parseBrewery(hxs, url):
 		pass
 
 	try:
-		beerCount = hxs.select('//h6').extract()
+		beerCount = hxs.xpath('//h6').extract()
 		p1 = re.compile('Current \(\d*\)')
 		item['currentBeers'] = str(p1.findall(beerCount[0])[0]).split('(')[1][:-1]
 		p1 = re.compile('Archived \(\d*\)')
@@ -90,7 +92,36 @@ def parseBrewery(hxs, url):
 	return item
 
 
-def parseReview(hxs):
+def parseBeer(hxs, url):
+	item = beerInfo()
+	item['beerName'] = hxs.xpath('//*[@id="content"]/div/div/div[1]/div/div[3]/h1/text()').extract()[0]
+	item['breweryName'] = hxs.xpath('//td/a[contains(@href,"/beer/profile")]/b/text()').extract()[0]
+	item['breweryID'] = url.split('/')[5]
+	item['beerID'] = url.split('/')[6]
+	item['BAScore'] = int(hxs.xpath('//span[@class="BAscore_big ba-score"]/text()').extract()[0])
+	item['BROScore'] = int(hxs.xpath('//span[@class="BAscore_big ba-bro_score"]/text()').extract()[0])
+	item['numRatings'] = int(hxs.xpath('//span[@class="ba-ratings"]/text()').extract()[1].split(' ')[0].replace(',',''))
+	item['numReviews'] = int(hxs.xpath('//span[@class="ba-reviews"]/text()').extract()[0].replace(',',''))
+	item['rAvg'] = float(hxs.xpath('//span[@class="ba-ravg"]/text()').extract()[0])
+	item['pDev'] = float(hxs.xpath('//span[@class="ba-pdev"]/text()').extract()[0][:-1])
+	item['wants'] = int(hxs.xpath('//a[contains(@href,"/beer/trade/")]/text()').extract()[0].split(':')[1])
+	item['gots'] = int(hxs.xpath('//a[contains(@href,"/beer/trade/")]/text()').extract()[1].split(':')[1])
+	item['FT'] = int(hxs.xpath('//a[contains(@href,"/beer/trade/")]/text()').extract()[2].split(':')[1])
+	item['style'] = hxs.xpath('//a[contains(@href,"/beer/style")]/b/text()').extract()[0]
+
+	abvMess = hxs.xpath('//b[text()="Style | ABV"]/following-sibling::text()').extract()
+	abv = [item for item in abvMess if '%' in item][0]
+	item['ABV'] = float(re.search('(\d{0,2}\.\d{0,2})\%', abv).group(0)[:-1])
+	item['availability'] = hxs.xpath('//b[text()="Availability:"]/following-sibling::text()').extract()[0]
+	item['notes'] = ' '.join(hxs.xpath('//b[text()="Notes & Commercial Description:"]/following-sibling::text()').extract())
+	item['retriveDate'] = datetime.datetime.now()
+	return item
+
+
+def parseReview(hxs, url, db):
+	# we take the DB so we can commit to it at the end of the page
+	# only make a single commit after all of the reviews have been added
+
 	breweryID = url.split('/')[5]
 	beerID = url.split('/')[6]
 	self.log(url)
@@ -142,11 +173,25 @@ def parseReview(hxs):
 				#print "Date Else"
 
 			print ("u: " + result['user']+" - #" + str(i) +" " +brewery[0]+ ":"+breweryID+":"+ beerID)
-			yield result
+			newReview = DBbeerReview(result)
+
+			# now we will try to add the review to the DB
+			db.add(newReview)
+
 
 		except IOError:
 			result = BeeradvocateItem()
 			yield result
 		else:
 			result = BeeradvocateItem()
-			yield result
+		finally:
+			try:
+				db.commit()
+				yield True
+			except:
+				db.rollback()
+				yield False
+		yield result
+
+
+#hxs.xpath('//td[@align="left"][@valign="top"][@style="padding:10px;"]/td[contains(text(), "|")]/text()').extract()

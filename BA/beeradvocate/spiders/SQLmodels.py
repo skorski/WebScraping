@@ -27,7 +27,15 @@ def createDB(engine):
 def duplicateBrewery(compBrewID, db):
 	# query the db for breweries with the num ID.
 	q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == compBrewID)
-	if q.count() > 0:
+	if len(q) > 0:
+		return True
+	else:
+		return False
+
+
+def duplicateBeer(compBeerID, db):
+	q = db.query(DBbeerInfo).filter(DBbeerInfo.breweryID == compBeerID)
+	if len(q) > 0:
 		return True
 	else:
 		return False
@@ -44,8 +52,9 @@ def addBrewery(item):
 
 class DBbeerReview(Base):
 	__tablename__ = "beerReview"
-
-	beerID = Column(Integer, primary_key=True)
+	
+	pk = Column(Integer, primary_key = True)
+	beerID = Column(Integer)
 	fkbreweryID = Column(Integer)
 	rating = Column(Float)
 	userName = Column(Text)
@@ -131,6 +140,7 @@ class DBbeerInfo(Base):
 	numRatings = Column(Integer)
 	numReviews = Column(Integer)
 	rAvg = Column(Float)
+	pDev = Column(Float)
 	wants = Column(Integer)
 	gots = Column(Integer)
 	FT = Column(Integer)
@@ -140,19 +150,25 @@ class DBbeerInfo(Base):
 	notes = Column(Text)
 	retriveDate = Column(DateTime)
 
-	def __init__(self, beerID, breweryID, BAScore, BROScore, numRatings, numReviews, rAvg, wants, gots, FT, style, ABV, availability, notes):
-		self.beerID = beerID
-		self.breweryID = breweryID
-		self.BAScore = BAScore
-		self.BROScore = BROScore
-		self.numRatings = numRatings
-		self.numReviews = numReviews
-		self.rAvg = rAvg
-		self.wants = wants
-		self.gots = gots
-		self.FT = FT
-		self.style = style
-		self.ABV = ABV
-		self.availability = availability
-		self.notes = notes
-		self.date = datetime.datetime.now()
+	def __init__(self, item):
+		self.beerName = item['beerName']
+		self.breweryName = item['breweryName']
+		self.breweryID = item['breweryID']
+		self.beerID = item['beerID']
+		self.BAScore = item.get('BAScore', -9)
+		self.BROScore = item.get('BROScore', -9)
+		self.numRatings = item.get('numRatings', -9)
+		self.numReviews = item.get('numReviews', -9)
+		self.rAvg = item.get('rAvg', -9)
+		self.pDev = item.get('pDev', -9)
+		self.wants = item.get('wants', -9)
+		self.gots = item.get('gots', -9)
+		self.FT = item.get('FT', -9)
+		self.style = item.get('style', 'NA')
+		self.ABV = item.get('ABV', -9)
+		self.availability = item.get('availability', 'NA')
+		self.notes = item.get('notes', 'NA')
+		self.retriveDate = datetime.datetime.now()	
+
+def __repr__(self):
+		return '<DBbeerInfo (beerName = %r, breweryName = %r, breweryID = %r, beerID = %r, BAScore = %r, BROScore = %r, numRatings = %r )>' % (self.beerName, self.breweryName, self.breweryID, self.beerID, self.BAScore, self.BROScore, self.numRatings)

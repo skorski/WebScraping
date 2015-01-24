@@ -9,15 +9,15 @@ from scrapy.selector import HtmlXPathSelector, Selector
 from beeradvocate.items import BeeradvocateItem, breweryInfo, beerReview, beerInfo
 from scrapy.shell import inspect_response
 from scrapy.exceptions import DropItem
-from parseFunctions import parseBrewery, parseReview, isInt
-from sqlalchemy import create_engine, MetaData
+from parseFunctions import parseBrewery, parseBeer, parseReview, isInt
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from sqlalchemy.ext.declarative import declarative_base # this is used to create the base class that can be used to create the database
 Base = declarative_base()
 
 # with base defined we can import the models
-from SQLmodels import DBbreweryInfo, DBbeerReview, DBbeerInfo, createTables, duplicateBrewery
+from SQLmodels import DBbreweryInfo, DBbeerReview, DBbeerInfo, createTables, duplicateBrewery, duplicateBeer
 
 # scrapy crawl beeradvocate
 # scrapy crawl beeradvocate -s JOBDIR=crawls/somespider-1
@@ -126,16 +126,36 @@ class BASpider(CrawlSpider):
 						print "-----------"
 						yield item
 
-				# elif (not isInt(url.split('/')[6]) and url.split('/')[4] == 'style'): 
-				# 	# this is a style of beer, only get the links.
-				# 	print ('==Style Page==')
-				# 	item = BeeradvocateItem()
-				# 	yield item
-				# elif (isInt(url.split('/')[6]) and url.split('/')[4] == 'profile'):
-				# 	# this is a beer review page
-				# 	print ('==Review Page==')
-				# 	item = parseReview(hxs)
-				# 	yield item
+				elif (not isInt(url.split('/')[6]) and url.split('/')[4] == 'style'): 
+					# this is a style of beer, only get the links.
+					print ('==Style Page==')
+					item = breweryInfo()
+				 	yield item
+
+				elif (isInt(url.split('/')[6]) and url.split('/')[4] == 'profile'):
+				 	# this is a beer review page
+				 	print ('==Review Page==')
+					# inspect_response(response, self)
+					if duplicateBeer(url.split('/')[6], db):
+						print 'duplicate beer'
+					else:
+						item = parseBeer(hxs, url)
+						try:
+							newBeer = DBbeerInfo(item)
+							db.add(newBeer)
+							db.commit()
+							print "Beer Successfully added to DB"
+						except:
+							db.rollback()
+							print "* ERROR * Beer addition issue"
+
+					# we pass the db to this function so it can add reviews independently.
+					if parseReview(hxs, url, db):
+						print "Reviews Added Successfully"
+					else:
+						print "* ERROR * Problem Adding Reviews"
+
+				 	yield item
 	
 			except IndexError:
 				print ('==index error==')
