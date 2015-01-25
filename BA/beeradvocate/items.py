@@ -27,6 +27,8 @@ class BeeradvocateItem(scrapy.Item):
 
 class beerReview(scrapy.Item):
 	beerID = scrapy.Field()
+	name = scrapy.Field()
+	brewery = scrapy.Field()
 	breweryID = scrapy.Field()
 	rating = scrapy.Field()
 	userName = scrapy.Field()

@@ -26,7 +26,7 @@ def createDB(engine):
 
 def duplicateBrewery(compBrewID, db):
 	# query the db for breweries with the num ID.
-	q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == compBrewID)
+	q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == compBrewID).all()
 	if len(q) > 0:
 		return True
 	else:
@@ -34,7 +34,7 @@ def duplicateBrewery(compBrewID, db):
 
 
 def duplicateBeer(compBeerID, db):
-	q = db.query(DBbeerInfo).filter(DBbeerInfo.breweryID == compBeerID)
+	q = db.query(DBbeerInfo).filter(DBbeerInfo.beerID == compBeerID).all()
 	if len(q) > 0:
 		return True
 	else:
@@ -52,23 +52,29 @@ def addBrewery(item):
 
 class DBbeerReview(Base):
 	__tablename__ = "beerReview"
-	
+
 	pk = Column(Integer, primary_key = True)
-	beerID = Column(Integer)
+	name = Column(Text)
+	brewery = Column(Text)
 	fkbreweryID = Column(Integer)
+	beerID = Column(Integer)
 	rating = Column(Float)
 	userName = Column(Text)
 	fullReview = Column(Text)
-	date = Column(DateTime)
 	notes = Column(Text)
+	date = Column(Text)
 	retriveDate = Column(DateTime)
 
-	def __init__(self, beerID, breweryID, rating, userName, fullReview, date):
-		self.beerID = beerID
-		self.breweryID = breweryID
-		self.rating = rating
-		self.userName = userName
-		self.fullReview = fullReview
+	def __init__(self, item):
+		self.beerID = item.get('beerID', -9)
+		self.name = item.get('name', 'NA')
+		self.brewery = item.get('brewery', 'NA')
+		self.fkbreweryID = item.get('breweryID', -9)
+		self.rating = item.get('rating', -9)
+		self.userName = item.get('userName', 'NA')
+		self.fullReview = item.get('fullReview', 'NA')
+		self.notes = item.get('notes', 'NA')
+		self.date = item.get('date', 'NA')
 		self.retriveDate = datetime.datetime.now()
 
 

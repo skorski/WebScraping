@@ -107,7 +107,9 @@ class BASpider(CrawlSpider):
 					# if there is no final value and it is a profile... it's a place page	
 					print '==Place=='
 					# test to see if this has already been parsed
-					if duplicateBrewery(breweryID, db):
+					# inspect_response(response, self)
+					q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == breweryID).all()
+					if len(q) > 0:
 						print 'duplicated brewery'
 						# create a blank item and return it, there is no need to parse
 						item = breweryInfo()
@@ -122,7 +124,7 @@ class BASpider(CrawlSpider):
 						except:
 							db.rollback()
 							print "DB commit failed"
-						print item
+						print item['breweryName']
 						print "-----------"
 						yield item
 
@@ -136,7 +138,8 @@ class BASpider(CrawlSpider):
 				 	# this is a beer review page
 				 	print ('==Review Page==')
 					# inspect_response(response, self)
-					if duplicateBeer(url.split('/')[6], db):
+					a = 1
+					if a == 2:
 						print 'duplicate beer'
 					else:
 						item = parseBeer(hxs, url)
@@ -150,11 +153,12 @@ class BASpider(CrawlSpider):
 							print "* ERROR * Beer addition issue"
 
 					# we pass the db to this function so it can add reviews independently.
-					if parseReview(hxs, url, db):
+					if parseReview(hxs, url, engine):
 						print "Reviews Added Successfully"
 					else:
 						print "* ERROR * Problem Adding Reviews"
 
+					item = breweryInfo
 				 	yield item
 	
 			except IndexError:
