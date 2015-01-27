@@ -5,6 +5,7 @@ from scrapy.selector import HtmlXPathSelector, Selector
 from beeradvocate.items import BeeradvocateItem, breweryInfo, beerInfo, beerReview
 from SQLmodels import DBbeerInfo, DBbeerReview
 import unicodedata
+import json
 from pygeocoder import Geocoder
 import re
 import datetime
@@ -248,16 +249,11 @@ def parseReview(hxs, url, engine):
 
 		# now we will try to add the review to the DB
 		db.add(newReview)
-		# print "---"
-		# print result
-		print "-- review parse Complete --"
+		revObj.append(newReview)
 
-		# except IOError:
-		# 	result = BeeradvocateItem()
-		# 	yield result
-		#else:
-		#	result = BeeradvocateItem()
-		#finally:
+		# print "---"
+		# print result- review parse Complete --"
+
 		db.commit()
 		try:
 			db.commit()
@@ -265,8 +261,11 @@ def parseReview(hxs, url, engine):
 			# return True
 		except:
 			db.rollback()
+			# we still need the data... export as a file with a timestamp
+			with open('review' + str(datetime.datetime.now()) + '.json', 'w') as outfile:
+				json.dump(revObj, outfile)
 			print "Review addition error"
-			# return False
+			return False
 	return False
 
 

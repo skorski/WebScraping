@@ -47,17 +47,11 @@ class BASpider(CrawlSpider):
 
 	createTables(engine)
 
-		# at this point we should be able to do things like db.add(myObject) and db.commit()
-
 	# start_urls = ["http://www.beeradvocate.com/beer/style/", "http://www.beeradvocate.com/beer/"]   
 	start_urls = [
 							"http://www.beeradvocate.com/beer/profile/73/5096/",
 							#"http://www.beeradvocate.com/place/"
 							]  
-
-
-	# rules = (
-	#Rule (LinkExtractor(allow=("http://www.beeradvocate.com/beer/style/", "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/", "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{0,6}/{0,1}?view=beers",), deny=("http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/?ba=", "http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/\?sort=low","http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/\?sort=[a-z]{1,9}", "http://www.beeradvocate.com/beer/profile/\d{3}/\d{3,6}/\?ba=",),), 'parse_page', follow = True),)
 
 	rules = (
 	Rule (LinkExtractor(
@@ -73,21 +67,6 @@ class BASpider(CrawlSpider):
 			"\S*\?view=ratings\S*",
 			# "\S*\?view=",
 			),), 'parse_page', follow = True),)
-
-
-# Allow
-			# "http://www.beeradvocate.com/beer/zzzzzstyle/", 
-			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{0,1}/", 
-
-
-# Deny
-
-			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\?ba=", 
-			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\?sort=", 
-			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?ba=", 
-			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?sort=",
-			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?sort=", 
-			# "http://www.beeradvocate.com/beer/profile/\d{2,6}/\d{3,6}/\?ba=",
 
 
 	def parse_page(self, response):
@@ -109,7 +88,7 @@ class BASpider(CrawlSpider):
 					# test to see if this has already been parsed
 					# inspect_response(response, self)
 					q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == breweryID).all()
-					if len(q) > 0:
+					if q:
 						print 'duplicated brewery'
 						# create a blank item and return it, there is no need to parse
 						item = breweryInfo()
@@ -138,8 +117,8 @@ class BASpider(CrawlSpider):
 				 	# this is a beer review page
 				 	print ('==Review Page==')
 					# inspect_response(response, self)
-					a = 1
-					if a == 2:
+					q = db.query(DBbeerReview).filter(DBbeerReview.beerID == url.split('/')[6]).all()
+					if q:
 						print 'duplicate beer'
 					else:
 						item = parseBeer(hxs, url)
@@ -148,15 +127,16 @@ class BASpider(CrawlSpider):
 							db.add(newBeer)
 							db.commit()
 							print "Beer Successfully added to DB"
+
+							# we pass the db to this function so it can add reviews independently.
+							if parseReview(hxs, url, engine):
+								print "Reviews Added Successfully"
+							else:
+								print "* ERROR * Problem Adding Reviews"
+						
 						except:
 							db.rollback()
 							print "* ERROR * Beer addition issue"
-
-					# we pass the db to this function so it can add reviews independently.
-					if parseReview(hxs, url, engine):
-						print "Reviews Added Successfully"
-					else:
-						print "* ERROR * Problem Adding Reviews"
 
 					item = breweryInfo
 				 	yield item
