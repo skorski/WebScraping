@@ -178,10 +178,8 @@ def parseBeer(hxs, url):
 	except:
 		print datetime.datetime.now()
 
-
-	print "---"
 	# print item
-	print "-- BP Complete --"
+	print "-- Beer Parse Complete --"
 	return item
 
 
@@ -249,7 +247,7 @@ def parseReview(hxs, url, engine):
 
 		# now we will try to add the review to the DB
 		db.add(newReview)
-		revObj.append(newReview)
+		items.append(newReview)
 
 		# print "---"
 		# print result- review parse Complete --"
@@ -263,7 +261,7 @@ def parseReview(hxs, url, engine):
 			db.rollback()
 			# we still need the data... export as a file with a timestamp
 			with open('review' + str(datetime.datetime.now()) + '.json', 'w') as outfile:
-				json.dump(revObj, outfile)
+				json.dump(items, outfile)
 			print "Review addition error"
 			return False
 	return False

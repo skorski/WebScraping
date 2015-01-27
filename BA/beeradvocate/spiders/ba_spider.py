@@ -89,7 +89,7 @@ class BASpider(CrawlSpider):
 					# inspect_response(response, self)
 					q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == breweryID).all()
 					if q:
-						print 'duplicated brewery'
+						print '-- Duplicated Brewery --'
 						# create a blank item and return it, there is no need to parse
 						item = breweryInfo()
 						yield item
@@ -103,8 +103,8 @@ class BASpider(CrawlSpider):
 						except:
 							db.rollback()
 							print "DB commit failed"
-						print item['breweryName']
-						print "-----------"
+						# print item['breweryName']
+						# print "-----------"
 						yield item
 
 				elif (not isInt(url.split('/')[6]) and url.split('/')[4] == 'style'): 
@@ -122,10 +122,11 @@ class BASpider(CrawlSpider):
 						print 'duplicate beer'
 					else:
 						item = parseBeer(hxs, url)
+						newBeer = DBbeerInfo(item)
+						db.add(newBeer)
+						db.commit()
 						try:
-							newBeer = DBbeerInfo(item)
-							db.add(newBeer)
-							db.commit()
+
 							print "Beer Successfully added to DB"
 
 							# we pass the db to this function so it can add reviews independently.
