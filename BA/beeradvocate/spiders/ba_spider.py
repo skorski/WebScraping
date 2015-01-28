@@ -85,9 +85,10 @@ class BASpider(CrawlSpider):
 				if (not isInt(url.split('/')[6]) and url.split('/')[4] == 'profile'):
 					# if there is no final value and it is a profile... it's a place page	
 					print '==Place=='
+					breweryID = url.split('/')[5]
 					# test to see if this has already been parsed
 					# inspect_response(response, self)
-					q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == breweryID).all()
+					q = db.query(DBbreweryInfo).filter(DBbreweryInfo.breweryID == breweryID).first()
 					if q:
 						print '-- Duplicated Brewery --'
 						# create a blank item and return it, there is no need to parse
@@ -99,10 +100,10 @@ class BASpider(CrawlSpider):
 							newBrewery = DBbreweryInfo(item)
 							db.add(newBrewery)
 							db.commit()
-							print "DB commit successful"
+							print "DB Brewery commit successful"
 						except:
 							db.rollback()
-							print "DB commit failed"
+							print "DB Brewery commit failed"
 						# print item['breweryName']
 						# print "-----------"
 						yield item
@@ -117,29 +118,29 @@ class BASpider(CrawlSpider):
 				 	# this is a beer review page
 				 	print ('==Review Page==')
 					# inspect_response(response, self)
-					q = db.query(DBbeerReview).filter(DBbeerReview.beerID == url.split('/')[6]).all()
+					q = db.query(DBbeerReview).filter(DBbeerReview.beerID == url.split('/')[6]).first()
 					if q:
 						print 'duplicate beer'
 					else:
 						item = parseBeer(hxs, url)
-						newBeer = DBbeerInfo(item)
-						db.add(newBeer)
-						db.commit()
 						try:
-
+							newBeer = DBbeerInfo(item)
+							db.add(newBeer)
+							db.commit()
 							print "Beer Successfully added to DB"
-
-							# we pass the db to this function so it can add reviews independently.
-							if parseReview(hxs, url, engine):
-								print "Reviews Added Successfully"
-							else:
-								print "* ERROR * Problem Adding Reviews"
-						
 						except:
 							db.rollback()
 							print "* ERROR * Beer addition issue"
 
-					item = breweryInfo
+						# we pass the db to this function so it can add reviews independently.
+						if parseReview(hxs, url, engine):
+							print "Reviews Added Successfully"
+						else:
+							print "* ERROR * Problem Adding Reviews"
+						
+
+
+					item = breweryInfo()
 				 	yield item
 	
 			except IndexError:

@@ -98,7 +98,7 @@ def parseBrewery(hxs, url):
 
 def parseBeer(hxs, url):
 	print "Parsing Beer Info"
-	item = {}
+	item = beerInfo()
 	item['beerName'] = hxs.xpath('//*[@id="content"]/div/div/div[1]/div/div[3]/h1/text()').extract()[0]
 	item['breweryName'] = hxs.xpath('//td/a[contains(@href,"/beer/profile")]/b/text()').extract()[0]
 	item['breweryID'] = url.split('/')[5]
@@ -168,11 +168,6 @@ def parseBeer(hxs, url):
 	except:
 		print "Avail error"
 
-	# try:
-	# 	# item['notes'] = ' '.join(unicodedata.normalize('NFKD', hxs.xpath('//b[text()="Notes & Commercial Description:"]/following-sibling::text()').extract().encode('ascii','ignore')))
-	# except:
-	# 	print "Notes error"
-
 	try:
 		item['retriveDate'] = datetime.datetime.now()
 	except:
@@ -219,13 +214,19 @@ def parseReview(hxs, url, engine):
 		result['name'] = title
 		result['brewery'] = brewery
 		result['breweryID'] = breweryID
-		result['beerID'] = beerID
-		result['rating'] = review.xpath('//*[@id="rating_fullview_content_2"]/span[1]/text()')[i].extract()
 		try:
 			result['userName'] = review.xpath('//*[@id="rating_fullview_content_2"]/div/span/a[1]/text()')[i].extract()
 		except IndexError:
 			result['userName'] = 'NA'
+		result['beerID'] = beerID
+		result['rating'] = review.xpath('//*[@id="rating_fullview_content_2"]/span[1]/text()')[i].extract()
 
+		# check to see if this review is already in the db
+		# this has been removed because the query takes forever
+		# q = db.query(DBbeerReview).filter(DBbeerReview.fkbreweryID == result['breweryID'] , DBbeerReview.beerID == result['beerID'], DBbeerReview.userName == result['userName'], DBbeerReview.rating == result['rating']).first()
+		# if q:
+		#	print "Duplicate Review - Will Not Add"
+		# else:
 		try:
 			result['fullReview'] = review.xpath('//*[@id="rating_fullview_content_2"]/span[4]/text()')[i].extract()
 		except IndexError:
@@ -249,9 +250,6 @@ def parseReview(hxs, url, engine):
 		db.add(newReview)
 		items.append(newReview)
 
-		# print "---"
-		# print result- review parse Complete --"
-
 		db.commit()
 		try:
 			db.commit()
@@ -264,7 +262,7 @@ def parseReview(hxs, url, engine):
 				json.dump(items, outfile)
 			print "Review addition error"
 			return False
-	return False
+	return True
 
 
 #hxs.xpath('//td[@align="left"][@valign="top"][@style="padding:10px;"]/td[contains(text(), "|")]/text()').extract()
